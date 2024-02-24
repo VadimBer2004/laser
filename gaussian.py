@@ -63,6 +63,7 @@ def quad_update(frame, ax, grid):
 
 
 # Set initial conditions for CO molecule
+# Reference: https://iopscience.iop.org/article/10.1088/0253-6102/59/2/11/pdf
 grid = np.linspace(0.8e-10, 2e-10, 10_000) # meters
 omega1 = 2141.7 * 2*np.pi * 3e10 # rad/s
 omega2 = 1743.41 * 2*np.pi * 3e10 # rad/s
