@@ -64,34 +64,34 @@ def quad_update(frame, ax, grid):
 
 # Set initial conditions for CO molecule
 # Reference: https://iopscience.iop.org/article/10.1088/0253-6102/59/2/11/pdf
-grid = np.linspace(0.8e-10, 2e-10, 10_000) # meters
+grid = np.linspace(0, 4e-10, 10_000) # meters
 omega1 = 2141.7 * 2*np.pi * 3e10 # rad/s
 omega2 = 1743.41 * 2*np.pi * 3e10 # rad/s
 x1 = 1.1327e-10 # meters
 x2 = 1.2105e-10 # meters
 e1 = -11.18*1.6e-19 # J
 e2 = -5.1456*1.6e-19 # J
-#mass = 1/1823*1.66e-27 # kg
-mu = 12 * 16 / (12 + 16) * 1.66e-27 # kg
-mass = mu
-hbar = 1.054e10-34 # J*s
-init_potential = QuadPotential(mu*omega1**2/(1.6e-19)/(27.21), x1, e1/(1.6e-19)/(27.21)-112.8)
-new_potential = QuadPotential(mu*omega2**2/(1.6e-19)/(27.21), x2, e2/(1.6e-19)/(27.21)-112.8)
+mass = 1/1823*1.66e-27 # electron mass in kg
+mu = 12 * 16 / (12 + 16) * 1.66e-27 # reduced atomic mass in kg
+#mass = mu
+hbar = 1.054e-34 # J*s
+init_potential = QuadPotential(mu*omega1**2, x1, e1)
+new_potential = QuadPotential(mu*omega2**2, x2, e2)
 
 # Compute stationary gaussian
 # Serves as initial wavefunction
 init_wave = init_potential.get_stationary(mass, 0, hbar)
 
 period = 2*np.pi/new_potential.find_omega(mass) # period of oscillations
-N_periods = 5 # how many periods we want to compute
+N_periods = 1 # how many periods we want to compute
 points_per_period = 2_000 # how many points we want per period
 time_steps = np.arange(0, N_periods*points_per_period) # how many time steps we take (spectrum resolution)
-time_scale = points_per_period/period # how many gaussian computations per time step (correlations resolution)
+dt = period/points_per_period # dt per time step (correlations resolution)
 
 # Compute gaussians at each time stamp
 snapshots = []
 for step in time_steps:
-    packet = quad_solution(step/time_scale, mass, init_wave, new_potential)
+    packet = quad_solution(step*dt, mass, init_wave, new_potential)
     snapshots.append(packet)
 
 # Compute corelations for each time stamp
@@ -103,29 +103,33 @@ for wave in snapshots:
 spectrum = compute_spectrum(correlations)
 max_i = np.argmax(spectrum)
 # Plot the spectrum
-fig, axs = plt.subplots(1, 3, figsize=(18, 6))
+fig, axs = plt.subplots(1, 3, figsize=(10, 5))
 #axs[0].plot(time_steps[max(max_i-300, 0):max_i+300], np.abs(spectrum)[max(max_i-300, 0):max_i+300])
-#axs[0].plot(np.fft.fftfreq(time_steps.size, d=1/time_scale), np.abs(spectrum))
-axs[0].plot(time_steps, np.abs(spectrum))
+axs[0].plot(np.fft.fftshift(np.fft.fftfreq(time_steps.size, d=dt/period)), 1/points_per_period*np.abs(np.fft.fftshift(spectrum)))
+#axs[0].plot(time_steps, np.abs(spectrum))
 axs[0].set_xlabel("omega")
 axs[0].set_ylabel("sigma(omega)")
 axs[0].set_title("Spectrum")
 
 #axs[1].plot(time_steps[0:int(len(time_steps)/time_scale)], np.abs(correlations)[0:int(len(time_steps)/time_scale)])
-axs[1].plot(time_steps/time_scale/period, np.abs(correlations))
+axs[1].plot(time_steps*dt/period, np.abs(correlations))
 axs[1].set_xlabel("time [periods]")
 axs[1].set_ylabel("correlation")
 axs[1].set_title("Correlation")
 
-init_potential.draw(axs[2], grid)
-new_potential.draw(axs[2], grid, color="green")
+#init_potential.draw(axs[2], grid, label="init V(x)", color="orange")
+#new_potential.draw(axs[2], grid, label="new V(x)", color="green")
 #init_wave.draw(axs[2], grid)
+snapshots[800].draw(axs[2], grid, p_label="p 1", re_label="Re 1", im_label="Im 1")
+snapshots[1_000].draw(axs[2], grid, p_label="p 2", re_label="Re 2", im_label="Im 2")
+snapshots[1_200].draw(axs[2], grid, p_label="p 3", re_label="Re 3", im_label="Im 3")
 # Sanity check
 #draw_gaussian(axs[2],
 #              quad_solution(50, init_potential["x"], init_potential["omega"], init_x, init_p, init_alpha, mass, grid, hbar=1),
 #              grid)
-axs[2].legend(["initial V(x)", "new V(x)", "inital p", "inital Re", "initial Im"])
+axs[2].legend()
 axs[2].set_xlabel("x")
 axs[2].set_ylabel("Psi(x, 0)")
 axs[2].set_title("Potentials")
+plt.tight_layout()
 plt.show()

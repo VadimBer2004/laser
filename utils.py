@@ -32,7 +32,7 @@ class Gaussian:
 
         return gaussian
     
-    def draw(self, ax, grid):
+    def draw(self, ax, grid, p_label="p", re_label="Re", im_label="Im"):
         """Draw a wavefunction on given matplotlib axes"""
         gaussian = self.compute(grid)
         prob_density = np.abs(gaussian)
@@ -40,9 +40,9 @@ class Gaussian:
         imag = np.imag(gaussian)
 
         #ax.set_ylim([-0.5, 1])
-        ax.plot(grid, prob_density, c="black")
-        ax.plot(grid, real, c="red")
-        ax.plot(grid, imag, c="blue")
+        ax.plot(grid, prob_density, c="black", label=p_label)
+        ax.plot(grid, real, c="red", label=re_label)
+        ax.plot(grid, imag, c="blue", label=im_label)
 
 
 
@@ -58,9 +58,9 @@ class QuadPotential:
     def compute(self, grid):
         return 0.5 * self.k * np.square(grid-self.x0) + self.v0
     
-    def draw(self, ax, grid, color="orange"):
+    def draw(self, ax, grid, label=None, color="orange"):
         pot = self.compute(grid)
-        ax.plot(grid, pot, c=color)
+        ax.plot(grid, pot, c=color, label=label)
     
     def get_stationary(self, m, gamma, hbar):
         """ Get a stationary Gaussian wave within the potential """
