@@ -64,13 +64,15 @@ def quad_update(frame, ax, grid):
 
 # Set initial conditions for CO molecule
 # Reference: https://iopscience.iop.org/article/10.1088/0253-6102/59/2/11/pdf
-grid = np.linspace(0, 4e-10, 10_000) # meters
+grid = np.linspace(-1e-10, 5e-10, 10_000) # meters
 omega1 = 2141.7 * 2*np.pi * 3e10 # rad/s
 omega2 = 1743.41 * 2*np.pi * 3e10 # rad/s
 x1 = 1.1327e-10 # meters
 x2 = 1.2105e-10 # meters
-e1 = -11.18*1.6e-19 # J
-e2 = -5.1456*1.6e-19 # J
+#e1 = (-11.18 - 112.8*27.21)*1.6e-19 # J
+e1 = (-11.18)*1.6e-19 # J
+e2 = (-5.1456)*1.6e-19 # J
+#e2 = (-5.1456- 112.8*27.21)*1.6e-19 # J
 mass = 1/1823*1.66e-27 # electron mass in kg
 mu = 12 * 16 / (12 + 16) * 1.66e-27 # reduced atomic mass in kg
 #mass = mu
@@ -83,10 +85,11 @@ new_potential = QuadPotential(mu*omega2**2, x2, e2)
 init_wave = init_potential.get_stationary(mass, 0, hbar)
 
 period = 2*np.pi/new_potential.find_omega(mass) # period of oscillations
-N_periods = 1 # how many periods we want to compute
-points_per_period = 2_000 # how many points we want per period
+N_periods = 100 # how many periods we want to compute
+points_per_period = 100 # how many points we want per period
 time_steps = np.arange(0, N_periods*points_per_period) # how many time steps we take (spectrum resolution)
 dt = period/points_per_period # dt per time step (correlations resolution)
+T = period * N_periods
 
 # Compute gaussians at each time stamp
 snapshots = []
@@ -101,35 +104,45 @@ for wave in snapshots:
 
 # Compute spectrum from correlations
 spectrum = compute_spectrum(correlations)
-max_i = np.argmax(spectrum)
+spectrum_shifted = np.abs(np.fft.fftshift(spectrum))
+sample_freq = np.fft.fftshift(np.fft.fftfreq(time_steps.size, d=dt))
+center_ind = points_per_period*N_periods//2
+max_i = np.argmax(spectrum_shifted)
+print(f"Maximum omega is {np.abs(sample_freq[max_i])/1e15} * 10^15 rad per seconds")
 # Plot the spectrum
-fig, axs = plt.subplots(1, 3, figsize=(10, 5))
-#axs[0].plot(time_steps[max(max_i-300, 0):max_i+300], np.abs(spectrum)[max(max_i-300, 0):max_i+300])
-axs[0].plot(np.fft.fftshift(np.fft.fftfreq(time_steps.size, d=dt/period)), 1/points_per_period*np.abs(np.fft.fftshift(spectrum)))
-#axs[0].plot(time_steps, np.abs(spectrum))
-axs[0].set_xlabel("omega")
-axs[0].set_ylabel("sigma(omega)")
+fig, axs = plt.subplots(1, 3, figsize=(12, 6))
+axs[0].plot(sample_freq[center_ind:center_ind+1000]/2/np.pi * hbar, spectrum_shifted[center_ind:center_ind+1000])
+#axs[0].plot(sample_freq, spectrum_shifted)
+#axs[0].plot(time_steps, spectrum)
+axs[0].set_xlabel("$\omega$ [$s^{-1}$]")
+axs[0].set_ylabel("$\sigma(\omega)$")
 axs[0].set_title("Spectrum")
 
 #axs[1].plot(time_steps[0:int(len(time_steps)/time_scale)], np.abs(correlations)[0:int(len(time_steps)/time_scale)])
-axs[1].plot(time_steps*dt/period, np.abs(correlations))
-axs[1].set_xlabel("time [periods]")
+axs[1].plot((time_steps*dt/period)[:2*points_per_period], np.abs(correlations)[:2*points_per_period], c="black")
+#axs[1].plot(time_steps*dt/period, np.real(correlations), c="red")
+#axs[1].plot(time_steps*dt/period, np.imag(correlations), c="blue")
+axs[1].set_xlabel("$t$ [periods]")
 axs[1].set_ylabel("correlation")
 axs[1].set_title("Correlation")
 
-#init_potential.draw(axs[2], grid, label="init V(x)", color="orange")
-#new_potential.draw(axs[2], grid, label="new V(x)", color="green")
-#init_wave.draw(axs[2], grid)
-snapshots[800].draw(axs[2], grid, p_label="p 1", re_label="Re 1", im_label="Im 1")
-snapshots[1_000].draw(axs[2], grid, p_label="p 2", re_label="Re 2", im_label="Im 2")
-snapshots[1_200].draw(axs[2], grid, p_label="p 3", re_label="Re 3", im_label="Im 3")
+axs[2].set_ylim([np.real(init_potential.v0), -5*np.real(init_potential.v0)])
+init_potential.draw(axs[2], grid, label="$X^1 \Sigma^+$ (initial)", color="orange")
+new_potential.draw(axs[2], grid, label="$a^3 \Pi$ (new)", color="green")
+axs[2].plot([0, 0], [np.real(init_potential.v0), -100*np.real(init_potential.v0)], linestyle="dotted", c="black", label="$R=0$")
+#init_wave.draw(axs[2], grid, labels=["p_init", "Re_init", "Im_init"], colors=["black", None, None], draw_flags=[True, False, False])
+#snapshots[400].draw(axs[2], grid, labels=["p 1", "Re 1", "Im 1"], colors=["red", None, None], draw_flags=[True, False, False])
+#snapshots[500].draw(axs[2], grid, labels=["p 2", "Re 2", "Im 2"], colors=["green", None, None], draw_flags=[True, False, False])
+#snapshots[550].draw(axs[2], grid, labels=["p 3", "Re 3", "Im 3"], colors=["blue", None, None], draw_flags=[True, False, False])
 # Sanity check
 #draw_gaussian(axs[2],
 #              quad_solution(50, init_potential["x"], init_potential["omega"], init_x, init_p, init_alpha, mass, grid, hbar=1),
 #              grid)
 axs[2].legend()
-axs[2].set_xlabel("x")
-axs[2].set_ylabel("Psi(x, 0)")
+axs[2].set_xlabel("$R$ [$m$]")
+axs[2].set_ylabel("$E_{pot}$ [$J$]")
 axs[2].set_title("Potentials")
+
+fig.suptitle("CO molecule transition")
 plt.tight_layout()
 plt.show()

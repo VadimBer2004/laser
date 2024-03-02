@@ -32,7 +32,7 @@ class Gaussian:
 
         return gaussian
     
-    def draw(self, ax, grid, p_label="p", re_label="Re", im_label="Im"):
+    def draw(self, ax, grid, labels=["p", "Re", "Im"], colors=["black", "red", "blue"], draw_flags=[True, True, True]):
         """Draw a wavefunction on given matplotlib axes"""
         gaussian = self.compute(grid)
         prob_density = np.abs(gaussian)
@@ -40,9 +40,9 @@ class Gaussian:
         imag = np.imag(gaussian)
 
         #ax.set_ylim([-0.5, 1])
-        ax.plot(grid, prob_density, c="black", label=p_label)
-        ax.plot(grid, real, c="red", label=re_label)
-        ax.plot(grid, imag, c="blue", label=im_label)
+        if draw_flags[0]: ax.plot(grid, prob_density, c=colors[0], label=labels[0])
+        if draw_flags[1]: ax.plot(grid, real, c=colors[1], label=labels[1])
+        if draw_flags[2]: ax.plot(grid, imag, c=colors[2], label=labels[2])
 
 
 
