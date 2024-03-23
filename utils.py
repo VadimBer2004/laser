@@ -62,6 +62,17 @@ class QuadPotential:
         pot = self.compute(grid)
         ax.plot(grid, pot, c=color, label=label)
     
+    def draw_levels(self, ax, grid, m, hbar, size, n_levels=10, label=None, color="orange"):
+        mask = np.isclose(grid, self.x0)
+        for i in range(n_levels):
+            energy = (i + 0.5)*hbar*self.find_omega(m) + self.v0
+            if i == 0:
+                ax.plot([self.x0-size/2, self.x0+size/2], [energy, energy], c=color, label=label)
+            else:
+                ax.plot([self.x0-size/2, self.x0+size/2], [energy, energy], c=color)
+
+    def calc_energy_level(self, n, mass, hbar):
+        return (0.5 + n) * self.find_omega(mass) * hbar + self.v0
     def get_stationary(self, m, gamma, hbar):
         """ Get a stationary Gaussian wave within the potential """
         x0 = self.x0
@@ -121,4 +132,31 @@ def compute_spectrum(correlations):
     """Time intervals must be evenly spaced"""
     #assert correlations.size == times.size
     # Assume times are evenly spaced
+    # Returns linear freuqency
     return np.fft.ifft(correlations)
+
+
+def calculate_energy_transition(init_pot: QuadPotential, new_pot: QuadPotential, n, m, mass, hbar):
+
+    init_omega = init_pot.find_omega(mass)
+    new_omega = new_pot.find_omega(mass)
+    e_init = (0.5 + n)*init_omega*hbar + init_pot.v0
+    e_new = (0.5 + m)*new_omega*hbar + new_pot.v0
+    delta_e = e_new - e_init
+    return delta_e
+
+def possible_energy_transitions(init_pot: QuadPotential, new_pot: QuadPotential, mass, hbar, n_init_lim=10, n_new_lim=10):
+
+    init_omega = init_pot.find_omega(mass)
+    new_omega = new_pot.find_omega(mass)
+
+    levels = []
+    for i in range(n_init_lim):
+        for j in range(n_new_lim):
+            e_init = (0.5 + i)*init_omega*hbar + init_pot.v0
+            e_new = (0.5 + j)*new_omega*hbar + new_pot.v0
+            delta_e = e_new - e_init
+            levels.append(delta_e)
+    levels.sort()
+
+    return levels
