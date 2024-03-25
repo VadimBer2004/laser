@@ -63,6 +63,15 @@ def quad_update(frame, ax, grid):
 
 
 
+# TODO: Atomic units
+# [energy] - hartree, 1 hartree = 27.211386 eV
+# hbar = 1
+# electron_mass = 1
+# [time] - hbar per hartree
+# [length] - Bohr radius
+# 
+
+
 # Set initial conditions for CO molecule
 # Reference: https://iopscience.iop.org/article/10.1088/0253-6102/59/2/11/pdf
 grid = np.linspace(-1e-10, 5e-10, 10_000) # meters
