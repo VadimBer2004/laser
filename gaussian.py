@@ -74,36 +74,38 @@ def quad_update(frame, ax, grid):
 
 # Set initial conditions for CO molecule
 # Reference: https://iopscience.iop.org/article/10.1088/0253-6102/59/2/11/pdf
-grid = np.linspace(-1e-10, 5e-10, 10_000) # meters
-omega1 = 2141.7 * 2*np.pi * 3e10 # rad/s
-#omega1 = 2141.7 * 2 * np.pi # omega per c
-omega2 = 1743.41 * 2*np.pi * 3e10 # rad/s
-#omega2 = 1743.41 * 2*np.pi
-x1 = 1.1327e-10 # meters
-x2 = 1.2105e-10 # meters
-#e1 = (-11.18 - 112.8*27.21)*1.6e-19 # J
-e1 = (-11.18)*1.6e-19 # J
-#e1 = -11.18 #eV
-#e2 = -5.1456 #eV
-e2 = (-5.1456)*1.6e-19 # J
-#e2 = (-5.1456- 112.8*27.21)*1.6e-19 # J
-mass = 1/1823*1.66e-27 # electron mass in kg
-#mass = 0.511e6 # eV/c^2
-mu = 12 * 16 / (12 + 16) * 1.66e-27 # reduced atomic mass in kg
-#mu = 12 * 16 / (12 + 16) * 938e6 # reduced mass in eV
-#mass = mu
-hbar = 1.054e-34 # J*s
-#hbar = 6.582e-16 #eV*s
+#grid = np.linspace(-1e-10, 5e-10, 10_000) # meters
+grid = np.linspace(-1, 7, 10_000) # Bohr radii
+#omega1 = 2141.7 * 2*np.pi * 3e10 # rad/s
+omega1 = 2141.7 * 2*np.pi * 3e10 * (2.4189e-17) # rad * hartree / hbar
+#omega2 = 1743.41 * 2*np.pi * 3e10 # rad/s
+omega2 = 1743.41 * 2*np.pi * 3e10 * (2.4189e-17) # rad * hartree / hbar
+#x1 = 1.1327e-10 # meters
+x1 = 1.1327e-10 / (5.2918e-11) # Bohr radii
+#x2 = 1.2105e-10 # meters
+x2 = 1.2105e-10 / (5.2918e-11) # Bohr radii
+#e1 = (-11.18)*1.6e-19 # J
+e1 = (-11.18) / 27.211 # hartree
+#e2 = (-5.1456)*1.6e-19 # J
+e2 = (-5.1456) / 27.211 # hartree
+#mass = 1/1823*1.66e-27 # electron mass in kg
+mass = 1 # electron mass
+#mu = 12 * 16 / (12 + 16) * 1.66e-27 # reduced atomic mass in kg
+mu = 12 * 16 / (12 + 16) * 1836.153 # reduced mass in electron mass
+#hbar = 1.054e-34 # J*s
+hbar = 1 # atomic units
 init_potential = QuadPotential(mu*omega1**2, x1, e1)
 new_potential = QuadPotential(mu*omega2**2, x2, e2)
 
 # Compute stationary gaussian
 # Serves as initial wavefunction
 init_wave = init_potential.get_stationary(mass, 0, hbar)
+print(init_wave.x0, init_wave.p0, init_wave.hbar, init_wave.gamma, init_wave.alpha)
+
 
 period = 2*np.pi/new_potential.find_omega(mass) # period of oscillations
 N_periods = 100 # how many periods we want to compute
-points_per_period = 100 # how many points we want per period
+points_per_period = 200 # how many points we want per period
 time_steps = np.arange(0, N_periods*points_per_period) # how many time steps we take (spectrum resolution)
 dt = period/points_per_period # dt per time step (correlations resolution)
 T = period * N_periods
@@ -125,13 +127,13 @@ spectrum_shifted = np.abs(np.fft.fftshift(spectrum))
 sample_freq = np.fft.fftshift(np.fft.fftfreq(time_steps.size, d=dt))
 center_ind = points_per_period*N_periods//2
 max_i = np.argmax(spectrum_shifted[center_ind:])
-print(f"Maximum E_omega is {sample_freq[center_ind:][max_i]*hbar} eV")
-print(f"Maximum E_omega should be {calculate_energy_transition(init_potential, new_potential, 0, 0, mass, hbar)} eV")
-print(f"Second maximum should be {calculate_energy_transition(init_potential, new_potential, 0, 1, mass, hbar)} eV")
+print(f"Maximum E_omega is {sample_freq[center_ind:][max_i]*hbar} Hartree")
+print(f"Maximum E_omega should be {calculate_energy_transition(init_potential, new_potential, 0, 0, mass, hbar)} Hartree")
+print(f"Second maximum should be {calculate_energy_transition(init_potential, new_potential, 0, 1, mass, hbar)} Hartree")
 # Plot the spectrum
 fig, axs = plt.subplots(1, 3, figsize=(12, 6))
-#axs[0].plot(sample_freq[center_ind-1000:center_ind+1000]*hbar, spectrum_shifted[center_ind-1000:center_ind+1000])
-axs[0].plot(sample_freq, spectrum_shifted)
+axs[0].plot(sample_freq[center_ind-1000:center_ind+1000]*hbar, spectrum_shifted[center_ind-1000:center_ind+1000])
+#axs[0].plot(sample_freq, spectrum_shifted)
 #axs[0].plot(time_steps, spectrum)
 axs[0].set_xlabel("$\omega$ [$s^{-1}$]")
 axs[0].set_ylabel("$\sigma(\omega)$")
@@ -148,12 +150,12 @@ axs[1].set_title("Correlation")
 #axs[2].set_ylim([np.real(init_potential.v0), np.real(init_potential.v0)+2e-18])
 #axs[2].set_xlim([-0.5e-10, 2e-10])
 init_potential.draw(axs[2], grid, label="$X^1 \Sigma^+$ (initial)", color="orange")
-init_potential.draw_levels(axs[2], grid, mass, hbar, 5e-11, label="levels", color="orange")
+init_potential.draw_levels(axs[2], grid, mass, hbar, 1, label="levels", color="orange")
 new_potential.draw(axs[2], grid, label="$a^3 \Pi$ (new)", color="green")
-new_potential.draw_levels(axs[2], grid, mass, hbar, 5e-11, label="levels", color="green")
+new_potential.draw_levels(axs[2], grid, mass, hbar, 1, label="levels", color="green")
 #axs[2].plot([0, 0], [np.real(init_potential.v0), -100*np.real(init_potential.v0)], linestyle="dotted", c="black", label="$R=0$")
 #axs[2].plot(spectrum_shifted[center_ind:center_ind+1000]*5e-10, sample_freq[center_ind:center_ind+1000]*hbar + init_potential.v0 + 0.5*hbar*init_potential.find_omega(mass))
-#init_wave.draw(axs[2], grid, labels=["p_init", "Re_init", "Im_init"], colors=["black", None, None], draw_flags=[True, False, False])
+init_wave.draw(axs[2], grid, labels=["p_init", "Re_init", "Im_init"], colors=["black", None, None], draw_flags=[True, False, False])
 #snapshots[400].draw(axs[2], grid, labels=["p 1", "Re 1", "Im 1"], colors=["red", None, None], draw_flags=[True, False, False])
 #snapshots[500].draw(axs[2], grid, labels=["p 2", "Re 2", "Im 2"], colors=["green", None, None], draw_flags=[True, False, False])
 #snapshots[550].draw(axs[2], grid, labels=["p 3", "Re 3", "Im 3"], colors=["blue", None, None], draw_flags=[True, False, False])
