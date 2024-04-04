@@ -124,7 +124,7 @@ for wave in snapshots:
 # Compute spectrum from correlations
 spectrum = compute_spectrum(correlations)
 spectrum_shifted = np.abs(np.fft.fftshift(spectrum))
-sample_freq = np.fft.fftshift(np.fft.fftfreq(time_steps.size, d=dt))
+sample_freq = np.fft.fftshift(np.fft.fftfreq(time_steps.size, d=dt/2/np.pi))
 center_ind = points_per_period*N_periods//2
 max_i = np.argmax(spectrum_shifted[center_ind:])
 print(f"Maximum E_omega is {sample_freq[center_ind:][max_i]*hbar} Hartree")
@@ -132,7 +132,7 @@ print(f"Maximum E_omega should be {calculate_energy_transition(init_potential, n
 print(f"Second maximum should be {calculate_energy_transition(init_potential, new_potential, 0, 1, mass, hbar)} Hartree")
 # Plot the spectrum
 fig, axs = plt.subplots(1, 3, figsize=(12, 6))
-axs[0].plot(sample_freq[center_ind-1000:center_ind+1000]*hbar, spectrum_shifted[center_ind-1000:center_ind+1000])
+axs[0].plot(sample_freq[center_ind-500:center_ind+500]*hbar, spectrum_shifted[center_ind-500:center_ind+500])
 #axs[0].plot(sample_freq, spectrum_shifted)
 #axs[0].plot(time_steps, spectrum)
 axs[0].set_xlabel("$\omega$ [$s^{-1}$]")
@@ -150,11 +150,11 @@ axs[1].set_title("Correlation")
 #axs[2].set_ylim([np.real(init_potential.v0), np.real(init_potential.v0)+2e-18])
 #axs[2].set_xlim([-0.5e-10, 2e-10])
 init_potential.draw(axs[2], grid, label="$X^1 \Sigma^+$ (initial)", color="orange")
-init_potential.draw_levels(axs[2], grid, mass, hbar, 1, label="levels", color="orange")
+init_potential.draw_levels(axs[2], grid, mass, hbar, 1, n_levels=1, label="levels", color="orange")
 new_potential.draw(axs[2], grid, label="$a^3 \Pi$ (new)", color="green")
-new_potential.draw_levels(axs[2], grid, mass, hbar, 1, label="levels", color="green")
+new_potential.draw_levels(axs[2], grid, mass, hbar, 1, n_levels=10, label="levels", color="green")
 #axs[2].plot([0, 0], [np.real(init_potential.v0), -100*np.real(init_potential.v0)], linestyle="dotted", c="black", label="$R=0$")
-#axs[2].plot(spectrum_shifted[center_ind:center_ind+1000]*5e-10, sample_freq[center_ind:center_ind+1000]*hbar + init_potential.v0 + 0.5*hbar*init_potential.find_omega(mass))
+axs[2].plot(spectrum_shifted[center_ind-500:center_ind+500]*10, sample_freq[center_ind-500:center_ind+500]*hbar+0.5*hbar*new_potential.find_omega(mass)) # Hooray!
 init_wave.draw(axs[2], grid, labels=["p_init", "Re_init", "Im_init"], colors=["black", None, None], draw_flags=[True, False, False])
 #snapshots[400].draw(axs[2], grid, labels=["p 1", "Re 1", "Im 1"], colors=["red", None, None], draw_flags=[True, False, False])
 #snapshots[500].draw(axs[2], grid, labels=["p 2", "Re 2", "Im 2"], colors=["green", None, None], draw_flags=[True, False, False])
