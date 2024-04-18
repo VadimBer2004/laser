@@ -87,7 +87,7 @@ x2 = 1.2105e-10 / (5.2918e-11) # Bohr radii
 #e1 = (-11.18)*1.6e-19 # J
 e1 = (-11.18) / 27.211 # hartree
 #e2 = (-5.1456)*1.6e-19 # J
-e2 = (-5.1456) / 27.211 # hartree
+e2 = 5+(-5.1456) / 27.211 # hartree
 #mass = 1/1823*1.66e-27 # electron mass in kg
 mass = 1 # electron mass
 #mu = 12 * 16 / (12 + 16) * 1.66e-27 # reduced atomic mass in kg
@@ -95,7 +95,7 @@ mu = 12 * 16 / (12 + 16) * 1836.153 # reduced mass in electron mass
 #hbar = 1.054e-34 # J*s
 hbar = 1 # atomic units
 init_potential = QuadPotential(mu*omega1**2, x1, e1)
-new_potential = QuadPotential(mu*omega1**2, x1, e1)
+new_potential = QuadPotential(mu*omega2**2, x2, e2)
 
 # Compute stationary gaussian
 # Serves as initial wavefunction
@@ -104,17 +104,21 @@ print(init_wave.x0, init_wave.p0, init_wave.hbar, init_wave.gamma, init_wave.alp
 
 
 period = 2*np.pi/new_potential.find_omega(mass) # period of oscillations
-N_periods = 10 # how many periods we want to compute
-points_per_period = 1_000 # how many points we want per period
+N_periods = 100 # how many periods we want to compute
+points_per_period = 200 # how many points we want per period
 time_steps = np.arange(0, N_periods*points_per_period) # how many time steps we take (spectrum resolution)
 dt = period/points_per_period # dt per time step (correlations resolution)
 T = period * N_periods
 
 # Compute gaussians at each time stamp
 snapshots = []
-for step in time_steps:
+gammas = np.full(time_steps.size, 1j)
+for i in range(len(time_steps)):
+    step = time_steps[i]
     packet = quad_solution(step*dt, mass, init_wave, new_potential)
     snapshots.append(packet)
+    gammas[i] = packet.gamma
+
 
 # Compute corelations for each time stamp
 correlations = []
@@ -122,7 +126,7 @@ for wave in snapshots:
     correlations.append(compute_correlation(init_wave, wave, grid))
 
 """
-fig, ax = plt.subplots()
+fig, ax = plt.subplots()black
 ax.plot(time_steps, np.real(correlations), label="correlations")
 ax.plot(time_steps, np.real(np.exp(-1j/hbar * time_steps * dt * 0.5*init_potential.find_omega(mass))), label="expected")
 ax.legend()
@@ -132,11 +136,11 @@ exit()
 # Compute spectrum from correlations
 spectrum = compute_spectrum(correlations)
 spectrum_shifted = np.abs(np.fft.fftshift(spectrum))
-sample_freq = np.fft.fftshift(np.fft.fftfreq(time_steps.size, d=dt))*2*np.pi - 0.5*new_potential.find_omega(mass) - 0.5*init_potential.find_omega(mass) - e1/hbar
-center_ind = points_per_period*N_periods//2
+sample_freq = np.fft.fftshift(np.fft.fftfreq(time_steps.size, d=dt))*2*np.pi  - 0.5*init_potential.find_omega(mass) - e1/hbar #- 0.5*new_potential.find_omega(mass)
+center_ind = points_per_period*N_periods//2 
 max_i = np.argmax(spectrum_shifted[center_ind:])
-left_lim = center_ind-100
-right_lim = center_ind+1_000
+left_lim = center_ind-500
+right_lim = center_ind+2_000
 print(f"Maximum E_omega is {sample_freq[center_ind:][max_i]*hbar} Hartree")
 print(f"Maximum E_omega should be {calculate_energy_transition(init_potential, new_potential, 0, 0, mass, hbar)} Hartree")
 print(f"Second maximum should be {calculate_energy_transition(init_potential, new_potential, 0, 1, mass, hbar)} Hartree")
@@ -151,24 +155,26 @@ axs[0].set_title("Spectrum")
 
 #axs[1].plot(time_steps[0:int(len(time_steps)/time_scale)], np.abs(correlations)[0:int(len(time_steps)/time_scale)])
 axs[1].plot((time_steps*dt/period)[:2*points_per_period], np.abs(correlations)[:2*points_per_period], c="black")
-#axs[1].plot(time_steps*dt/period, np.real(correlations), c="red")
-#axs[1].plot(time_steps*dt/period, np.imag(correlations), c="blue")
+#axs[1].plot((time_steps*dt/period)[:2*points_per_period], np.real(correlations)[:2*points_per_period], c="red")
+#axs[1].plot((time_steps*dt/period)[:2*points_per_period], np.imag(correlations)[:2*points_per_period], c="blue")
+#axs[1].plot((time_steps*dt/period)[:2*points_per_period], np.real(gammas)[:2*points_per_period], c="red")
+#axs[1].plot((time_steps*dt/period)[:2*points_per_period], np.imag(gammas)[:2*points_per_period], c="blue")
 axs[1].set_xlabel("$t$ [periods]")
 axs[1].set_ylabel("| $< \psi(0) | \psi(t) > $ |")
-axs[1].set_title("Correlation")
+axs[1].set_title("Phase")
 
-#axs[2].set_ylim([np.real(init_potential.v0), np.real(init_potential.v0)+2e-18])
-#axs[2].set_xlim([-0.5e-10, 2e-10])
-#init_potential.draw(axs[2], grid, label="$X^1 \Sigma^+$ (initial)", color="orange")
-#init_potential.draw_levels(axs[2], grid, mass, hbar, 1, n_levels=1, label="levels", color="orange")
-#new_potential.draw(axs[2], grid, label="$a^3 \Pi$ (new)", color="green")
-#new_potential.draw_levels(axs[2], grid, mass, hbar, 1, n_levels=10, label="levels", color="green")
+axs[2].set_ylim([-5, 20])
+axs[2].set_xlim([-0.1, 5])
+init_potential.draw(axs[2], grid, label="$X^1 \Sigma^+$ (initial)", color="orange")
+init_potential.draw_levels(axs[2], grid, mass, hbar, 1, n_levels=0, label="levels", color="orange")
+new_potential.draw(axs[2], grid, label="$a^3 \Pi$ (new)", color="green")
+new_potential.draw_levels(axs[2], grid, mass, hbar, 1, n_levels=10, label="levels", color="green")
 #axs[2].plot([0, 0], [np.real(init_potential.v0), -100*np.real(init_potential.v0)], linestyle="dotted", c="black", label="$R=0$")
-#axs[2].plot(spectrum_shifted[left_lim:right_lim]*10,
-#            sample_freq[left_lim:right_lim]*hbar + 0.5*hbar*init_potential.find_omega(mass) + e1,
-#            label="transition levels") # Hooray!
-init_wave.draw(axs[2], grid, labels=["$p_{init}$", "Re_init", "Im_init"], colors=["orange", "magenta", "lime"], draw_flags=[True, True, False])
-#axs[2].plot(grid, np.full(grid.size, 0), linestyle="dashed", color="grey", label="dissociation energy")
+axs[2].plot(spectrum_shifted[left_lim:right_lim]*5,
+            sample_freq[left_lim:right_lim]*hbar + 0.5*hbar*init_potential.find_omega(mass) + e1,
+            label="transition levels") # Hooray!
+init_wave.draw(axs[2], grid, labels=["$p_{init}$", "Re_init", "Im_init"], colors=["red", None, None], draw_flags=[True, False, False])
+axs[2].plot(grid, np.full(grid.size, 0), linestyle="dashed", color="grey", label="dissociation energy")
 #snapshots[400].draw(axs[2], grid, labels=["p 1", "Re 1", "Im 1"], colors=["red", None, None], draw_flags=[True, False, False])
 #snapshots[500].draw(axs[2], grid, labels=["p 2", "Re 2", "Im 2"], colors=["green", None, None], draw_flags=[True, False, False])
 #snapshots[550].draw(axs[2], grid, labels=["p 3", "Re 3", "Im 3"], colors=["blue", None, None], draw_flags=[True, False, False])

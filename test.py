@@ -1,17 +1,32 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from utils import Gaussian, QuadPotential, quad_solution
 
-x = np.linspace(0, np.pi*2, 100)
-y = np.cos(x)
-spec = np.abs(np.fft.fftshift(np.fft.ifft(y)))
-sample = np.fft.fftshift(np.fft.fftfreq(x.size, d=(x[1]-x[0])/2/np.pi))
+hbar = 1
+mass = 1
+potential = QuadPotential(1, 0, 0)
+wave = Gaussian(1, -1, 0.5, 0, hbar)
 
-center_i = x.size//2
-max_i1 = np.argmax(spec[center_i:])
-max_i2 = np.argmax(spec[:center_i])
+snapshots = []
+gammas = np.full(100, 0, dtype=complex)
+dt = 0.1
+steps = np.arange(0, 100)
+for i in steps:
+    snapshot = quad_solution(i*dt, mass, wave, potential)
+    snapshots.append(snapshot)
+    gammas[i] = snapshot.gamma
 
-print(sample[center_i:][max_i1])
-print(sample[:center_i][max_i2])
-
-plt.plot(sample, spec)
+fig, ax = plt.subplots()
+ax.plot(steps*dt, np.real(gammas), c="red")
+ax.plot(steps*dt, np.imag(gammas), c="blue")
 plt.show()
+
+'''
+phase = np.linspace(0, 4*np.pi, 1_000, dtype=complex)
+value = 0.5*np.log((1j)*np.sin(phase) + np.cos(phase))
+#value = (1j)*np.sin(phase) + np.cos(phase)
+fig, ax = plt.subplots()
+ax.plot(phase, np.real(value), c="red")
+ax.plot(phase, np.imag(value), c="blue")
+plt.show()
+'''

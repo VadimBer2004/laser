@@ -112,7 +112,10 @@ def quad_solution(t, m, wave:Gaussian, pot:QuadPotential):
     denom = (1j)*alpha0*sin + a*cos
     alpha = a * num / denom
 
-    gamma = (p*x - p0*x0)/2 + (1j)*hbar/2*np.log(denom / a) - pot.v0*t
+    turn = np.real(omega*t + np.pi) // (2*np.pi)
+    #turn = 0
+
+    gamma = (p*x - p0*x0)/2 + (1j)*hbar/2*(np.log(denom / a)+(1j)*2*np.pi*turn) - pot.v0*t
 
     new_wave = Gaussian(pot.x0+x, p, alpha, gamma, hbar)
     return new_wave
