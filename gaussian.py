@@ -87,7 +87,7 @@ x2 = 1.2105e-10 / (5.2918e-11) # Bohr radii
 #e1 = (-11.18)*1.6e-19 # J
 e1 = (-11.18) / 27.211 # hartree
 #e2 = (-5.1456)*1.6e-19 # J
-e2 = 5+(-5.1456) / 27.211 # hartree
+e2 = (-5.1456) / 27.211 # hartree
 #mass = 1/1823*1.66e-27 # electron mass in kg
 mass = 1 # electron mass
 #mu = 12 * 16 / (12 + 16) * 1.66e-27 # reduced atomic mass in kg
@@ -104,8 +104,8 @@ print(init_wave.x0, init_wave.p0, init_wave.hbar, init_wave.gamma, init_wave.alp
 
 
 period = 2*np.pi/new_potential.find_omega(mass) # period of oscillations
-N_periods = 100 # how many periods we want to compute
-points_per_period = 200 # how many points we want per period
+N_periods = 250 # how many periods we want to compute
+points_per_period = 100 # how many points we want per period
 time_steps = np.arange(0, N_periods*points_per_period) # how many time steps we take (spectrum resolution)
 dt = period/points_per_period # dt per time step (correlations resolution)
 T = period * N_periods
@@ -119,6 +119,11 @@ for i in range(len(time_steps)):
     snapshots.append(packet)
     gammas[i] = packet.gamma
 
+
+# Phase unwrapping
+unwrapped_gammas = np.unwrap(np.real(gammas), period=np.pi) + (1j)*np.unwrap(np.imag(gammas), period=np.pi)
+for i in range(len(snapshots)):
+    snapshots[i].gamma = unwrapped_gammas[i]
 
 # Compute corelations for each time stamp
 correlations = []
@@ -136,11 +141,11 @@ exit()
 # Compute spectrum from correlations
 spectrum = compute_spectrum(correlations)
 spectrum_shifted = np.abs(np.fft.fftshift(spectrum))
-sample_freq = np.fft.fftshift(np.fft.fftfreq(time_steps.size, d=dt))*2*np.pi  - 0.5*init_potential.find_omega(mass) - e1/hbar #- 0.5*new_potential.find_omega(mass)
+sample_freq = np.fft.fftshift(np.fft.fftfreq(time_steps.size, d=dt))*2*np.pi - 0.5*init_potential.find_omega(mass) - e1/hbar
 center_ind = points_per_period*N_periods//2 
 max_i = np.argmax(spectrum_shifted[center_ind:])
-left_lim = center_ind-500
-right_lim = center_ind+2_000
+left_lim = center_ind-1_000
+right_lim = center_ind+2_500
 print(f"Maximum E_omega is {sample_freq[center_ind:][max_i]*hbar} Hartree")
 print(f"Maximum E_omega should be {calculate_energy_transition(init_potential, new_potential, 0, 0, mass, hbar)} Hartree")
 print(f"Second maximum should be {calculate_energy_transition(init_potential, new_potential, 0, 1, mass, hbar)} Hartree")
@@ -154,14 +159,14 @@ axs[0].set_ylabel("$\sigma(\omega)$")
 axs[0].set_title("Spectrum")
 
 #axs[1].plot(time_steps[0:int(len(time_steps)/time_scale)], np.abs(correlations)[0:int(len(time_steps)/time_scale)])
-axs[1].plot((time_steps*dt/period)[:2*points_per_period], np.abs(correlations)[:2*points_per_period], c="black")
-#axs[1].plot((time_steps*dt/period)[:2*points_per_period], np.real(correlations)[:2*points_per_period], c="red")
-#axs[1].plot((time_steps*dt/period)[:2*points_per_period], np.imag(correlations)[:2*points_per_period], c="blue")
+axs[1].plot((time_steps*dt/period)[:4*points_per_period], np.abs(correlations)[:4*points_per_period], c="black")
+#axs[1].plot((time_steps*dt/period)[:4*points_per_period], np.real(correlations)[:4*points_per_period], c="red")
+#axs[1].plot((time_steps*dt/period)[:4*points_per_period], np.imag(correlations)[:4*points_per_period], c="blue")
 #axs[1].plot((time_steps*dt/period)[:2*points_per_period], np.real(gammas)[:2*points_per_period], c="red")
 #axs[1].plot((time_steps*dt/period)[:2*points_per_period], np.imag(gammas)[:2*points_per_period], c="blue")
 axs[1].set_xlabel("$t$ [periods]")
 axs[1].set_ylabel("| $< \psi(0) | \psi(t) > $ |")
-axs[1].set_title("Phase")
+axs[1].set_title("Correlation")
 
 axs[2].set_ylim([-5, 20])
 axs[2].set_xlim([-0.1, 5])
